@@ -12,12 +12,12 @@ struct person
     uint32_t nextNode;
     uint32_t prevNode;
     int8_t role;
-    char id[8];
+    char id[10];
     char name[32];
     date birthday;
     date join_date;
-    char phone[15];
-    char cccd[15];
+    char phone[16];
+    char cccd[16];
 };
 
 struct listStudent
@@ -39,22 +39,26 @@ uint32_t findAddrEmptySpace(fstream &data)
     uint32_t sizeFile;
     data.seekg(0, std::ios::end);
     sizeFile = data.tellg();
-    uint32_t role = 0;
-    data.seekg(LENGTH_HEADER + sizeof(uint32_t) * 2, std::ios::beg);
+    uint8_t role;
+    if (sizeFile == LENGTH_HEADER)
+    {
+        return LENGTH_HEADER;
+    }
+    data.seekg(LENGTH_HEADER + sizeof(uint32_t) * 2);
     while (true)
     {
         data.read((char *)&role, sizeof(int8_t));
         if (role <= 0)
         {
-            data.seekg(((uint32_t)data.tellg()) - (sizeof(int8_t) + sizeof(uint32_t) * 2), std::ios::beg);
+            data.seekg(((uint32_t)data.tellg()) - (sizeof(int8_t) + sizeof(uint32_t) * 2));
             break;
         }
-        if (role + sizeof(person) >= sizeFile)
+        if (((uint32_t)data.tellg()) + sizeof(person) > sizeFile)
         {
             data.seekg(0, std::ios::end);
             break;
         }
-        data.seekg(role + sizeof(person));
+        data.seekg(((uint32_t)data.tellg()) + sizeof(person));
     }
     return data.tellg();
 }
@@ -99,18 +103,19 @@ public:
 
     string decrypt(char *ciphertext)
     {
-        aes_decrypt((BYTE *)ciphertext, (BYTE *)ciphertext, key_schedule, 256);
-        string plaintext = ciphertext;
-        int padding = 0;
-        for (int i = plaintext.length() - 1; i >= 0; i--)
+        char *buf = new char[16];
+        aes_decrypt((BYTE *)ciphertext, (BYTE *)buf, key_schedule, 256);
+        int padding;
+        for (int i = 0; i < 16; i++)
         {
-            if (plaintext[i] == 0x01)
+            if (buf[i] == 0x01)
             {
-                padding = plaintext.length() - i - 1;
+                padding = i;
                 break;
             }
         }
-        plaintext.erase(plaintext.length() - padding, padding);
+        string plaintext;
+        plaintext.assign(buf, padding);
         return plaintext;
     }
 };
@@ -159,7 +164,6 @@ void initDataBase(fstream &data)
         printf("create new data.bin success\n\n");
         data.open("data.bin", std::ios::in | std::ios::out | std::ios::binary);
     }
-    printf("welcome to student management system\n");
 }
 
 void login(fstream &data)
@@ -192,17 +196,21 @@ void login(fstream &data)
     printf("login success\n");
 }
 
-void case1(fstream &data, listStudent ls)
+void case1(fstream &data)
 {
-    printf("list students\n");
-    if (ls.size == 0)
+    printf("list students\n- - - - - - - - - - - - - -\n");
+    listStudent *ls = new listStudent;
+    data.seekg(32);
+    data.read((char *)ls, sizeof(listStudent));
+    printf("size: %d\n", ls->size);
+    if (ls->size == 0)
     {
         printf("list students is empty\n");
     }
     else
     {
         person *p = new person;
-        uint32_t pos = ls.head;
+        uint32_t pos = ls->head;
         while (pos != 0)
         {
             data.seekg(pos);
@@ -218,19 +226,24 @@ void case1(fstream &data, listStudent ls)
         }
         delete p;
     }
+    delete ls;
 }
 
-void case2(fstream &data, listTeacher lt)
+void case2(fstream &data)
 {
-    printf("list teachers\n");
-    if (lt.size == 0)
+    printf("list teachers\n- - - - - - - - - - - - - -\n");
+    listTeacher *lt = new listTeacher;
+    data.seekg(32 + sizeof(listStudent));
+    data.read((char *)lt, sizeof(listTeacher));
+    printf("size: %d\n", lt->size);
+    if (lt->size == 0)
     {
         printf("list teachers is empty\n");
     }
     else
     {
         person *p = new person;
-        uint32_t pos = lt.head;
+        uint32_t pos = lt->head;
         while (pos != 0)
         {
             data.seekg(pos);
@@ -246,46 +259,68 @@ void case2(fstream &data, listTeacher lt)
         }
         delete p;
     }
+    delete lt;
 }
 
-void case3(fstream &data, listStudent &ls)
+void case3(fstream &data)
 {
-    printf("add student\n");
+    printf("add student\n- - - - - - - - - - - - - -\n");
+    listStudent* ls = new listStudent;
+    data.seekg(32);
+    data.read((char *)ls, sizeof(listStudent));
     person *p = new person;
     printf("id: ");
     cin >> p->id;
     printf("name: ");
     cin.ignore();
     cin.getline(p->name, 32);
-    printf("birthday: ");
-    cin >> p->birthday.day >> p->birthday.month >> p->birthday.year;
-    printf("join date: ");
-    cin >> p->join_date.day >> p->join_date.month >> p->join_date.year;
+    printf("birthday: \n");
+    int temp;
+    printf("    day: ");
+    cin >> temp;
+    p->birthday.day = temp;
+    printf("    month: ");
+    cin >> temp;
+    p->birthday.month = temp;
+    printf("    year: ");
+    cin >> temp;
+    p->birthday.year = temp;
+    printf("join date: \n");
+    printf("    day: ");
+    cin >> temp;
+    p->join_date.day = temp;
+    printf("    month: ");
+    cin >> temp;
+    p->join_date.month = temp;
+    printf("    year: ");
+    cin >> temp;
+    p->join_date.year = temp;
     printf("phone: ");
     cin.ignore();
-    cin.getline(p->phone, 15);
+    string phone;
+    getline(cin, phone);
     printf("cccd: ");
-    cin.getline(p->cccd, 15);
-    p->role = 0;
+    string cccd;
+    getline(cin, cccd);
+    p->role = 2;
     p->nextNode = 0;
     p->prevNode = 0;
     // encrypt phone and cccd
-    strcpy(p->phone, crypto.encrypt(p->phone));
-    strcpy(p->cccd, crypto.encrypt(p->cccd));
-    // write to data.bin
+    strcpy(p->phone, crypto.encrypt(phone));
+    strcpy(p->cccd, crypto.encrypt(cccd));
     uint32_t pos = findAddrEmptySpace(data);
     // update listStudent
-    if (ls.size == 0)
+    if (ls->size == 0)
     {
-        ls.head = pos;
-        ls.tail = pos;
-        data.seekg(0, pos);
+        ls->head = pos;
+        ls->tail = pos;
+        data.seekg(pos);
         data.write((char *)p, sizeof(person));
     }
     else
     {
         person *p1 = new person;
-        uint32_t pos1 = ls.head;
+        uint32_t pos1 = ls->head;
         while (pos1 != 0)
         {
             data.seekg(pos1);
@@ -299,12 +334,23 @@ void case3(fstream &data, listStudent &ls)
         if (pos1 == 0)
         {
             p1->nextNode = pos;
-            data.seekg(ls.tail);
+            data.seekg(ls->tail);
             data.write((char *)p1, sizeof(person));
-            p->prevNode = ls.tail;
+            p->prevNode = ls->tail;
             data.seekg(pos);
             data.write((char *)p, sizeof(person));
-            ls.tail = pos;
+            ls->tail = pos;
+        }
+        else
+        if (pos1 == ls->head)
+        {
+            p->nextNode = pos1;
+            p1->prevNode = pos;
+            data.seekg(pos1);
+            data.write((char *)p1, sizeof(person));
+            data.seekg(pos);
+            data.write((char *)p, sizeof(person));
+            ls->head = pos;
         }
         else
         {
@@ -325,43 +371,66 @@ void case3(fstream &data, listStudent &ls)
         }
         delete p1;
     }
-    ls.size++;
+    ls->size++;
     data.seekg(32);
-    data.write((char *)&ls, sizeof(listStudent));
+    data.write((char *)ls, sizeof(listStudent));
     delete p;
+    delete ls;
+    printf("add success\n");
 }
 
-void case4(fstream &data, listTeacher &lt)
+void case4(fstream &data)
 {
-    printf("add teacher\n");
+    printf("add teacher\n- - - - - - - - - - - - - -\n");
+    listTeacher *lt = new listTeacher;
+    data.seekg(32 + sizeof(listStudent));
+    data.read((char *)lt, sizeof(listTeacher));
     person *p = new person;
     printf("id: ");
     cin >> p->id;
     printf("name: ");
     cin.ignore();
     cin.getline(p->name, 32);
-    printf("birthday: ");
-    cin >> p->birthday.day >> p->birthday.month >> p->birthday.year;
-    printf("join date: ");
-    cin >> p->join_date.day >> p->join_date.month >> p->join_date.year;
+    printf("birthday: \n");
+    int temp;
+    printf("    day: ");
+    cin >> temp;
+    p->birthday.day = temp;
+    printf("    month: ");
+    cin >> temp;
+    p->birthday.month = temp;
+    printf("    year: ");
+    cin >> temp;
+    p->birthday.year = temp;
+    printf("join date: \n");
+    printf("    day: ");
+    cin >> temp;
+    p->join_date.day = temp;
+    printf("    month: ");
+    cin >> temp;
+    p->join_date.month = temp;
+    printf("    year: ");
+    cin >> temp;
+    p->join_date.year = temp;
     printf("phone: ");
     cin.ignore();
-    cin.getline(p->phone, 15);
+    string phone;
+    getline(cin, phone);
     printf("cccd: ");
-    cin.getline(p->cccd, 15);
+    string cccd;
+    getline(cin, cccd);
     p->role = 1;
     p->nextNode = 0;
     p->prevNode = 0;
     // encrypt phone and cccd
-    strcpy(p->phone, crypto.encrypt(p->phone));
-    strcpy(p->cccd, crypto.encrypt(p->cccd));
-    // write to data.bin
+    strcpy(p->phone, crypto.encrypt(phone));
+    strcpy(p->cccd, crypto.encrypt(cccd));
     uint32_t pos = findAddrEmptySpace(data);
     // update listTeacher
-    if (lt.size == 0)
+    if (lt->size == 0)
     {
-        lt.head = pos;
-        lt.tail = pos;
+        lt->head = pos;
+        lt->tail = pos;
         data.seekg(32 + sizeof(listStudent));
         data.write((char *)&lt, sizeof(listTeacher));
         data.seekg(pos);
@@ -370,7 +439,7 @@ void case4(fstream &data, listTeacher &lt)
     else
     {
         person *p1 = new person;
-        uint32_t pos1 = lt.head;
+        uint32_t pos1 = lt->head;
         while (pos1 != 0)
         {
             data.seekg(pos1);
@@ -384,12 +453,22 @@ void case4(fstream &data, listTeacher &lt)
         if (pos1 == 0)
         {
             p1->nextNode = pos;
-            data.seekg(lt.tail);
+            data.seekg(lt->tail);
             data.write((char *)p1, sizeof(person));
-            p->prevNode = lt.tail;
+            p->prevNode = lt->tail;
             data.seekg(pos);
             data.write((char *)p, sizeof(person));
-            lt.tail = pos;
+            lt->tail = pos;
+        }
+        if (pos1 == lt->head)
+        {
+            p->nextNode = pos1;
+            p1->prevNode = pos;
+            data.seekg(pos);
+            data.write((char *)p, sizeof(person));
+            data.seekg(pos1);
+            data.write((char *)p1, sizeof(person));
+            lt->head = pos;
         }
         else
         {
@@ -410,21 +489,389 @@ void case4(fstream &data, listTeacher &lt)
         }
         delete p1;
     }
-    lt.size++;
+    lt->size++;
     data.seekg(32 + sizeof(listStudent));
-    data.write((char *)&lt, sizeof(listTeacher));
+    data.write((char *)lt, sizeof(listTeacher));
     delete p;
+    delete lt;
+    printf("add success\n");
+}
+
+void case5(fstream &data)
+{
+    printf("delete student\n- - - - - - - - - - - - - -\n");
+    listStudent *ls = new listStudent;
+    data.seekg(32);
+    data.read((char *)ls, sizeof(listStudent));
+    if (ls->size == 0)
+    {
+        printf("list students is empty\n");
+    }
+    else
+    {
+        printf("id: ");
+        char id[8];
+        cin >> id;
+        person *p = new person;
+        uint32_t pos = ls->head;
+        while (pos != 0)
+        {
+            data.seekg(pos);
+            data.read((char *)p, sizeof(person));
+            if (strcmp(id, p->id) == 0)
+            {
+                break;
+            }
+            pos = p->nextNode;
+        }
+        if (pos == 0)
+        {
+            printf("id is not exist\n");
+        }
+        else
+        {
+            if (pos == ls->head)
+            {
+                ls->head = p->nextNode;
+                person *p1 = new person;
+                data.seekg(ls->head);
+                data.read((char *)p1, sizeof(person));
+                p1->prevNode = 0;
+                data.seekg(ls->head);
+                data.write((char *)p1, sizeof(person));
+                delete p1;
+            }
+            else
+            {
+                person *p1 = new person;
+                data.seekg(p->prevNode);
+                data.read((char *)p1, sizeof(person));
+                p1->nextNode = p->nextNode;
+                data.seekg(p->prevNode);
+                data.write((char *)p1, sizeof(person));
+                delete p1;
+            }
+            if (pos == ls->tail)
+            {
+                ls->tail = p->prevNode;
+                person *p2 = new person;
+                data.seekg(ls->tail);
+                data.read((char *)p2, sizeof(person));
+                p2->nextNode = 0;
+                data.seekg(ls->tail);
+                data.write((char *)p2, sizeof(person));
+                delete p2;
+            }
+            else
+            {
+                person *p2 = new person;
+                data.seekg(p->nextNode);
+                data.read((char *)p2, sizeof(person));
+                p2->prevNode = p->prevNode;
+                data.seekg(p->nextNode);
+                data.write((char *)p2, sizeof(person));
+                delete p2;
+            }
+            ls->size--;
+            data.seekg(32);
+            data.write((char *)ls, sizeof(listStudent));
+            p->role = -p->role;
+            data.seekg(pos);
+            data.write((char *)p, sizeof(person));
+            printf("delete success\n");
+        }
+        delete p;
+    }
+    delete ls;
+}
+
+void case6(fstream &data)
+{
+    printf("delete teacher\n- - - - - - - - - - - - - -\n");
+    listTeacher *lt = new listTeacher;
+    data.seekg(32 + sizeof(listStudent));
+    data.read((char *)lt, sizeof(listTeacher));
+    if (lt->size == 0)
+    {
+        printf("list teachers is empty\n");
+    }
+    else
+    {
+        printf("id: ");
+        char id[8];
+        cin >> id;
+        person *p = new person;
+        uint32_t pos = lt->head;
+        while (pos != 0)
+        {
+            data.seekg(pos);
+            data.read((char *)p, sizeof(person));
+            if (strcmp(id, p->id) == 0)
+            {
+                break;
+            }
+            pos = p->nextNode;
+        }
+        if (pos == 0)
+        {
+            printf("id is not exist\n");
+        }
+        else
+        {
+            if (pos == lt->head)
+            {
+                lt->head = p->nextNode;
+                person *p1 = new person;
+                data.seekg(lt->head);
+                data.read((char *)p1, sizeof(person));
+                p1->prevNode = 0;
+                data.seekg(lt->head);
+                data.write((char *)p1, sizeof(person));
+                delete p1;
+            }
+            else
+            {
+                person *p1 = new person;
+                data.seekg(p->prevNode);
+                data.read((char *)p1, sizeof(person));
+                p1->nextNode = p->nextNode;
+                data.seekg(p->prevNode);
+                data.write((char *)p1, sizeof(person));
+                delete p1;
+            }
+            if (pos == lt->tail)
+            {
+                lt->tail = p->prevNode;
+                person *p2 = new person;
+                data.seekg(lt->tail);
+                data.read((char *)p2, sizeof(person));
+                p2->nextNode = 0;
+                data.seekg(lt->tail);
+                data.write((char *)p2, sizeof(person));
+                delete p2;
+            }
+            else
+            {
+                person *p2 = new person;
+                data.seekg(p->nextNode);
+                data.read((char *)p2, sizeof(person));
+                p2->prevNode = p->prevNode;
+                data.seekg(p->nextNode);
+                data.write((char *)p2, sizeof(person));
+                delete p2;
+            }
+            lt->size--;
+            data.seekg(32 + sizeof(listStudent));
+            data.write((char *)lt, sizeof(listTeacher));
+            p->role = -p->role;
+            data.seekg(pos);
+            data.write((char *)p, sizeof(person));
+            printf("delete success\n");
+        }
+        delete p;
+    }
+    delete lt;
+}
+
+void case7(fstream &data)
+{
+    printf("edit student\n- - - - - - - - - - - - - -\n");
+    listStudent *ls = new listStudent;
+    data.seekg(32);
+    data.read((char *)ls, sizeof(listStudent));
+    if (ls->size == 0)
+    {
+        printf("list students is empty\n");
+    }
+    else
+    {
+        printf("id: ");
+        char id[8];
+        cin >> id;
+        person *p = new person;
+        uint32_t pos = ls->head;
+        while (pos != 0)
+        {
+            data.seekg(pos);
+            data.read((char *)p, sizeof(person));
+            if (strcmp(id, p->id) == 0)
+            {
+                break;
+            }
+            pos = p->nextNode;
+        }
+        if (pos == 0)
+        {
+            printf("id is not exist\n");
+        }
+        else
+        {
+            printf("name: ");
+            cin.ignore();
+            cin.getline(p->name, 32);
+            int temp;
+            printf("birthday: \n");
+            printf("    day: ");
+            cin >> temp;
+            p->birthday.day = temp;
+            printf("    month: ");
+            cin >> temp;
+            p->birthday.month = temp;
+            printf("    year: ");
+            cin >> temp;
+            p->birthday.year = temp;
+            printf("join date: \n");
+            printf("    day: ");
+            cin >> temp;
+            p->join_date.day = temp;
+            printf("    month: ");
+            cin >> temp;
+            p->join_date.month = temp;
+            printf("    year: ");
+            cin >> temp;
+            p->join_date.year = temp;
+            printf("phone: ");
+            cin.ignore();
+            string phone;
+            getline(cin, phone);
+            printf("cccd: ");
+            string cccd;
+            getline(cin, cccd);
+            // encrypt phone and cccd
+            strcpy(p->phone, crypto.encrypt(phone));
+            strcpy(p->cccd, crypto.encrypt(cccd));
+            data.seekg(pos);
+            data.write((char *)p, sizeof(person));
+            printf("edit success\n");
+        }
+        delete p;
+    }
+    delete ls;
+}
+
+void case8(fstream &data)
+{
+    printf("edit teacher\n- - - - - - - - - - - - - -\n");
+    listTeacher *lt = new listTeacher;
+    data.seekg(32 + sizeof(listStudent));
+    data.read((char *)lt, sizeof(listTeacher));
+    if (lt->size == 0)
+    {
+        printf("list teachers is empty\n");
+    }
+    else
+    {
+        printf("id: ");
+        char id[8];
+        cin >> id;
+        person *p = new person;
+        uint32_t pos = lt->head;
+        while (pos != 0)
+        {
+            data.seekg(pos);
+            data.read((char *)p, sizeof(person));
+            if (strcmp(id, p->id) == 0)
+            {
+                break;
+            }
+            pos = p->nextNode;
+        }
+        if (pos == 0)
+        {
+            printf("id is not exist\n");
+        }
+        else
+        {
+            printf("name: ");
+            cin.ignore();
+            cin.getline(p->name, 32);
+            int temp;
+            printf("birthday: \n");
+            printf("    day: ");
+            cin >> temp;
+            p->birthday.day = temp;
+            printf("    month: ");
+            cin >> temp;
+            p->birthday.month = temp;
+            printf("    year: ");
+            cin >> temp;
+            p->birthday.year = temp;
+            printf("join date: \n");
+            printf("    day: ");
+            cin >> temp;
+            p->join_date.day = temp;
+            printf("    month: ");
+            cin >> temp;
+            p->join_date.month = temp;
+            printf("    year: ");
+            cin >> temp;
+            p->join_date.year = temp;
+            printf("phone: ");
+            cin.ignore();
+            string phone;
+            getline(cin, phone);
+            printf("cccd: ");
+            string cccd;
+            getline(cin, cccd);
+            // encrypt phone and cccd
+            strcpy(p->phone, crypto.encrypt(phone));
+            strcpy(p->cccd, crypto.encrypt(cccd));
+            data.seekg(pos);
+            data.write((char *)p, sizeof(person));
+            printf("edit success\n");
+        }
+        delete p;
+    }
+    delete lt;
+}
+
+void case9(fstream &data)
+{
+    printf("trash bin:\n- - - - - - - - - - - - - -\n");
+    uint32_t sizeFile;
+    data.seekg(0, std::ios::end);
+    sizeFile = data.tellg();
+    if (sizeFile == LENGTH_HEADER)
+    {
+        printf("trash bin is empty\n");
+        return;
+    }
+    data.seekg(LENGTH_HEADER);
+    person *p = new person;
+    while (true)
+    {
+        data.read((char *)p, sizeof(person));
+        if (p->role < 0)
+        {
+            if(p->role == -1)
+            {
+                printf("role: teacher\n");
+            }
+            else
+            {
+                printf("role: student\n");
+            }
+            printf("id: %s\n", p->id);
+            printf("name: %s\n", p->name);
+            printf("birthday: %d/%d/%d\n", p->birthday.day, p->birthday.month, p->birthday.year);
+            printf("join date: %d/%d/%d\n", p->join_date.day, p->join_date.month, p->join_date.year);
+            printf("phone: %s\n", crypto.decrypt((char *)p->phone).c_str());
+            printf("cccd: %s\n", crypto.decrypt((char *)p->cccd).c_str());
+            printf("\n");
+        }
+        if (((uint32_t)data.tellg()) + sizeof(person) > sizeFile)
+        {
+            break;
+        }
+    }
 }
 
 int main()
 {
     fstream data("data.bin", std::ios::in | std::ios::out | std::ios::binary);
     initDataBase(data);
+    printf("welcome to student management system\n");
     login(data);
-    listStudent ls;
-    data.read((char *)&ls, sizeof(listStudent));
-    listTeacher lt;
-    data.read((char *)&lt, sizeof(listTeacher));
     // main loop
     while (true)
     {
@@ -436,34 +883,67 @@ int main()
         printf("6. delete teacher\n");
         printf("7. edit student\n");
         printf("8. edit teacher\n");
-        printf("9. exit\n");
-        printf("select: ");
+        printf("9. search trash bin\n");
+        printf("0. exit\n");
+        printf("\nselect: ");
         int select;
         cin >> select;
+        system("cls");
         switch (select)
         {
         case 1:
         {
-            case1(data, ls);
+            case1(data);
             break;
         }
         case 2:
         {
-            case2(data, lt);
+            case2(data);
             break;
         }
         case 3:
         {
-            case3(data, ls);
+            case3(data);
             break;
         }
         case 4:
         {
-            case4(data, lt);
+            case4(data);
             break;
         }
+        case 5:
+        {
+            case5(data);
+            break;
         }
-        data.close();
-        return 0;
+        case 6:
+        {
+            case6(data);
+            break;
+        }
+        case 7:
+        {
+            case7(data);
+            break;
+        }
+        case 8:
+        {
+            case8(data);
+            break;
+        }
+        case 9:
+        {
+            case9(data);
+            break;
+        }
+        default:
+        {
+            data.close();
+            return 0;
+        }
+        }
+        printf("\n");
+        system("pause");
+        system("cls");
     }
-}
+}   

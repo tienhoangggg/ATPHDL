@@ -4,6 +4,7 @@
 #include "sha256/sha256.h"
 #include <iostream>
 #include <fstream>
+#include <cstring>
 #include <string>
 #define LENGTH_HEADER 56 // 32 bytes Hash(key) + 24 bytes header
 #endif // PROGRAM_H
