@@ -196,7 +196,7 @@ void login(fstream &data)
     printf("login success\n");
 }
 
-void case1(fstream &data)
+void showListStudent(fstream &data)
 {
     printf("list students\n- - - - - - - - - - - - - -\n");
     listStudent *ls = new listStudent;
@@ -229,7 +229,7 @@ void case1(fstream &data)
     delete ls;
 }
 
-void case2(fstream &data)
+void showListTeacher(fstream &data)
 {
     printf("list teachers\n- - - - - - - - - - - - - -\n");
     listTeacher *lt = new listTeacher;
@@ -262,7 +262,7 @@ void case2(fstream &data)
     delete lt;
 }
 
-void case3(fstream &data)
+void addStudent(fstream &data)
 {
     printf("add student\n- - - - - - - - - - - - - -\n");
     listStudent* ls = new listStudent;
@@ -379,7 +379,7 @@ void case3(fstream &data)
     printf("add success\n");
 }
 
-void case4(fstream &data)
+void addTeacher(fstream &data)
 {
     printf("add teacher\n- - - - - - - - - - - - - -\n");
     listTeacher *lt = new listTeacher;
@@ -497,7 +497,7 @@ void case4(fstream &data)
     printf("add success\n");
 }
 
-void case5(fstream &data)
+void delStudent(fstream &data)
 {
     printf("delete student\n- - - - - - - - - - - - - -\n");
     listStudent *ls = new listStudent;
@@ -585,7 +585,7 @@ void case5(fstream &data)
     delete ls;
 }
 
-void case6(fstream &data)
+void delTeacher(fstream &data)
 {
     printf("delete teacher\n- - - - - - - - - - - - - -\n");
     listTeacher *lt = new listTeacher;
@@ -673,7 +673,7 @@ void case6(fstream &data)
     delete lt;
 }
 
-void case7(fstream &data)
+void editStudent(fstream &data)
 {
     printf("edit student\n- - - - - - - - - - - - - -\n");
     listStudent *ls = new listStudent;
@@ -749,7 +749,7 @@ void case7(fstream &data)
     delete ls;
 }
 
-void case8(fstream &data)
+void editTeacher(fstream &data)
 {
     printf("edit teacher\n- - - - - - - - - - - - - -\n");
     listTeacher *lt = new listTeacher;
@@ -825,7 +825,7 @@ void case8(fstream &data)
     delete lt;
 }
 
-void case9(fstream &data)
+void searchTrash(fstream &data)
 {
     printf("trash bin:\n- - - - - - - - - - - - - -\n");
     uint32_t sizeFile;
@@ -893,47 +893,47 @@ int main()
         {
         case 1:
         {
-            case1(data);
+            showListStudent(data);
             break;
         }
         case 2:
         {
-            case2(data);
+            showListTeacher(data);
             break;
         }
         case 3:
         {
-            case3(data);
+            addStudent(data);
             break;
         }
         case 4:
         {
-            case4(data);
+            addTeacher(data);
             break;
         }
         case 5:
         {
-            case5(data);
+            delStudent(data);
             break;
         }
         case 6:
         {
-            case6(data);
+            delTeacher(data);
             break;
         }
         case 7:
         {
-            case7(data);
+            editStudent(data);
             break;
         }
         case 8:
         {
-            case8(data);
+            editTeacher(data);
             break;
         }
         case 9:
         {
-            case9(data);
+            searchTrash(data);
             break;
         }
         default:
